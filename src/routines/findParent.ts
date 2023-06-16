@@ -12,18 +12,18 @@ async function getVersion(path: string) {
 }
 
 export async function findParent(parentid: string): Promise<FetchBundleResult> {
-  console.log("You have attempted to load a relative backup.");
   const spinner = ora("Searching for parent backup...").start();
 
   const candidates = getBackups();
 
   for (const candidate of candidates) {
     spinner.text = `Checking ${candidate}...`;
-    const version = await getVersion(candidate);
+    const candidatePath = `${config.backupsPath}/${candidate}`;
+    const version = await getVersion(candidatePath);
     if (version == parentid) {
       spinner.succeed(`Found parent backup: ${candidate}`);
 
-      const bundle = new Zip(`${config.backupsPath}/${candidate}`);
+      const bundle = new Zip(candidatePath);
 
       //double check that this bundle is not relative
       //By design, relative chains should be no longer than 2 backups

@@ -22,7 +22,7 @@ export async function fetchBundle(): Promise<FetchBundleResult> {
   const previousBackups = await getBackups();
 
   const choices = previousBackups.slice(0, 5).map((backup) => ({
-    name: backup,
+    name: backup.includes("_rel") ? `${backup} (relative)` : backup,
     value: backup,
   }));
 

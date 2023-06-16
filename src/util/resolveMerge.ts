@@ -12,7 +12,7 @@ export function resolveMerge(
 ): MergeResult {
   const bannedFiles = new Set<string>();
 
-  for (const entry of [...diff.removed, ...diff.modified]) {
+  for (const entry of [...diff.added, ...diff.modified]) {
     bannedFiles.add(entry.path);
   }
 

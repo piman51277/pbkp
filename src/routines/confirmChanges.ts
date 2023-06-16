@@ -4,7 +4,7 @@ import inquirer from "inquirer";
 export async function confirmChanges(diff: CompareResult): Promise<void> {
   const { added, modified, removed } = diff;
 
-  console.log("\nThe following changes will be made:");
+  console.log("\nChanges:");
   console.log(`  ${added.length} files added`);
   console.log(`  ${modified.length} files modified`);
   console.log(`  ${removed.length} files removed`);

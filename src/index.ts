@@ -2,6 +2,7 @@ import "./env/config.js";
 import inquirer from "inquirer";
 import { load } from "./stories/load.js";
 import { backup } from "./stories/backup.js";
+import { backupRelative } from "./stories/backupRelative.js";
 
 async function main() {
   const { action } = await inquirer.prompt([
@@ -34,7 +35,7 @@ async function main() {
       backup();
       break;
     case "relative":
-      console.log("Not implemented yet");
+      backupRelative();
       break;
   }
 }

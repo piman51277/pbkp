@@ -21,7 +21,7 @@ function intersect(source: FileDescriptor[], target: FileDescriptor[]) {
 
 export async function load(cli = false) {
   const backup = await fetchBundle();
-  if (cli) await confirmLoad(backup);
+  if (!cli) await confirmLoad(backup);
 
   let currentFiles = await discoverFiles();
   currentFiles = (await loadFiles(currentFiles))[0];
@@ -34,12 +34,13 @@ export async function load(cli = false) {
   if (backup.isRelative) {
     console.log("Loading files from chain...");
     const parent = await findParent(backup.relative!);
-    if (cli) await confirmLoad(parent);
+    if (!cli) await confirmLoad(parent);
 
     const relDiff = compare(parent.contents, backup.contents);
     const { fromIncoming, fromOld } = resolveMerge(parent.contents, relDiff);
 
     const backupFile = [...fromIncoming, ...fromOld];
+
     diff = compare(currentFiles, backupFile);
     const toLoad = [...diff.added, ...diff.modified];
 
@@ -53,7 +54,7 @@ export async function load(cli = false) {
     await loadBundle(backup.zip, toLoad);
   }
 
-  if (cli) await confirmChanges(diff);
+  if (!cli) await confirmChanges(diff);
 
   await applyDiffs(diff);
 }
