@@ -1,0 +1,25 @@
+{
+  "name": "pbkp",
+  "version": "3.0.0",
+  "description": "A small backup utility",
+  "type": "module",
+  "exports": "./out/index.js",
+  "scripts": {
+    "build": "npx tsc",
+    "dev": "npx tsc && node out/index.js"
+  },
+  "author": "piman51277",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.10",
+    "inquirer": "^9.2.7",
+    "joi": "^17.9.2",
+    "ora": "^6.3.1"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.0",
+    "@types/inquirer": "^9.0.3",
+    "@types/node": "^20.3.0",
+    "typescript": "^5.1.3"
+  }
+}

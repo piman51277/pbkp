@@ -1,0 +1,11 @@
+{
+  "targetPath": "",
+  "cachePath": "",
+  "backupsPath": "",
+  "backupName": "",
+  "bans":{
+    "directories":[""],
+    "files":[""],
+    "patterns":[""]
+  }
+}
