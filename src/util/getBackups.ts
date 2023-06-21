@@ -8,5 +8,5 @@ export function getBackups(): string[] {
     .filter((child) => child.isFile())
     .map((child) => child.name)
     .filter((name) => name.includes(".pmbk"))
-    .sort((a, b) => a.localeCompare(b));
+    .sort((a, b) => b.localeCompare(a));
 }
