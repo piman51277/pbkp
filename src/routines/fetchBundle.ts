@@ -21,13 +21,13 @@ export type FetchBundleResult = {
 export async function fetchBundle(): Promise<FetchBundleResult> {
   const previousBackups = await getBackups();
 
-  const choices = previousBackups.slice(0, 5).map((backup) => ({
+  const choices = previousBackups.map((backup) => ({
     name: backup.includes("_rel") ? `${backup} (relative)` : backup,
     value: backup,
   }));
 
-  choices.push({
-    name: "Other",
+  choices.unshift({
+    name: "Custom path...",
     value: "other",
   });
 
@@ -37,6 +37,7 @@ export async function fetchBundle(): Promise<FetchBundleResult> {
       name: "backup",
       message: "Which backup would you like to restore?",
       choices,
+      default: 1,
     },
   ]);
 
