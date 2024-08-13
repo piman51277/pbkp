@@ -1,5 +1,7 @@
+import { readFileSync } from "fs";
 import { discoverFiles } from "./routines/discoverFiles";
-import { hashNodes } from "./routines/hashNodes";
+import { hashNodes } from "./routines/hashing";
+import { brotliCompressSync, constants as zlibConst } from "zlib";
 
 const root = "/home/piman/data/programming";
 
@@ -11,13 +13,7 @@ async function run(): Promise<void> {
   const nodes = discoverFiles(root);
 
   console.log("Starting hashing");
-  const startTimestamp = Date.now();
-
   const hashed = await hashNodes(nodes);
-
-  const endTimestamp = Date.now();
-  const duration = endTimestamp - startTimestamp;
-  console.log(`Duration: ${duration}ms`);
 
   //count how many instances have hashes
   let count = 0;
@@ -29,5 +25,30 @@ async function run(): Promise<void> {
   console.log(`Hashed ${count} nodes, ${hashed.length} total`);
 }
 
-run();
-console.log("Done");
+async function zipTest(): Promise<void> {
+  const largeFile = "";
+
+  const t0 = Date.now();
+
+  const contents = readFileSync(largeFile);
+
+  const t1 = Date.now();
+  console.log(`Read file in ${t1 - t0}ms`);
+
+  const compressed: Buffer = brotliCompressSync(contents, {
+    params: {
+      [zlibConst.BROTLI_PARAM_QUALITY]: 8,
+    },
+  });
+
+  const t2 = Date.now();
+
+  console.log(`Compressed file in ${t2 - t1}ms`);
+
+  const reduction = (compressed.length / contents.length) * 100;
+  console.log(`Compressed file to ${reduction.toFixed(2)}% of original size`);
+  console.log(`Compressed size: ${compressed.length} bytes`);
+  console.log(`Original size:   ${contents.length} bytes`);
+}
+
+zipTest();
