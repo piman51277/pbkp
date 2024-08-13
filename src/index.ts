@@ -1,43 +1,33 @@
-import "./env/config.js";
-import inquirer from "inquirer";
-import { load } from "./stories/load.js";
-import { backup } from "./stories/backup.js";
-import { backupRelative } from "./stories/backupRelative.js";
+import { discoverFiles } from "./routines/discoverFiles";
+import { hashNodes } from "./routines/hashNodes";
 
-async function main() {
-  const { action } = await inquirer.prompt([
-    {
-      type: "list",
-      name: "action",
-      message: "What would you like to do?",
-      choices: [
-        {
-          name: "Load a backup",
-          value: "load",
-        },
-        {
-          name: "Create a backup",
-          value: "backup",
-        },
-        {
-          name: "Create a relative backup",
-          value: "relative",
-        },
-      ],
-    },
-  ]);
+const root = "/home/piman/data/programming";
 
-  switch (action) {
-    case "load":
-      load();
-      break;
-    case "backup":
-      backup();
-      break;
-    case "relative":
-      backupRelative();
-      break;
+/**
+ * main func
+ */
+async function run(): Promise<void> {
+  console.log("Starting discovery");
+  const nodes = discoverFiles(root);
+
+  console.log("Starting hashing");
+  const startTimestamp = Date.now();
+
+  const hashed = await hashNodes(nodes);
+
+  const endTimestamp = Date.now();
+  const duration = endTimestamp - startTimestamp;
+  console.log(`Duration: ${duration}ms`);
+
+  //count how many instances have hashes
+  let count = 0;
+  for (const node of hashed) {
+    if (node.hash) {
+      count++;
+    }
   }
+  console.log(`Hashed ${count} nodes, ${hashed.length} total`);
 }
 
-main();
+run();
+console.log("Done");
