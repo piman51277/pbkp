@@ -3,18 +3,6 @@ import { DirTree } from "../../types";
 import { createHash } from "crypto";
 import { isMainThread, parentPort, Worker, workerData } from "worker_threads";
 
-/**
- * Hashes the contents of a file
- * @param {string} path path to file
- * @returns {[string, string]} [hash of file, first 32 bytes, utf-8]
- */
-function hashFile(path: string): [string, string] {
-  const contents = readFileSync(path);
-  const hash = createHash("sha256");
-  hash.update(contents);
-  return [hash.digest("base64"), contents.toString("utf8", 0, 32)];
-}
-
 const WORKER_THREAD_MAX = 8;
 
 /**
@@ -51,15 +39,39 @@ export async function hashFileNodes(tree: DirTree): Promise<DirTree> {
   return tree;
 }
 
-//worker thread
-if (!isMainThread) {
+/**
+ * Hashes the contents of a file
+ * @param {string} path path to file
+ * @returns {[string, string]} [hash of file, first 32 bytes (utf-8), size (bytes)]
+ */
+function hashFile(path: string): [string, string, number] {
+  const contents = readFileSync(path);
+  const hash = createHash("sha256");
+  hash.update(contents);
+  return [
+    hash.digest("hex"),
+    contents.toString("utf8", 0, 32),
+    contents.length,
+  ];
+}
+
+/**
+ * Worker thread function to hash file nodes
+ */
+async function hashFileNodesWorker(): Promise<void> {
   const tree = workerData as DirTree;
   for (const node of tree) {
     if (node.isFile) {
-      const [fileHash, discriminator] = hashFile(node.fsPath!);
+      const [fileHash, discriminator, size] = hashFile(node.fsPath!);
       node.hash = fileHash;
       node.discriminator = discriminator;
+      node.size = size;
     }
   }
   parentPort?.postMessage(tree);
+}
+
+//worker thread
+if (!isMainThread) {
+  hashFileNodesWorker();
 }

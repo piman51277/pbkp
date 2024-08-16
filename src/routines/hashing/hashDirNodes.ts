@@ -12,7 +12,7 @@ function hashDirectory(node: FNode, tree: DirTree): string {
   for (const child of node.children) {
     hash.update(tree[child].hash as string);
   }
-  return hash.digest("base64");
+  return hash.digest("hex");
 }
 
 /**

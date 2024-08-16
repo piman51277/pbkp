@@ -53,7 +53,7 @@ export function discoverFiles(root: string): DirTree {
 
       if (child.isFile()) {
         //check if the file matches an ignore pattern
-        if (config.bans.files.includes(child.name)) {
+        if (config.bans.files.some((ban) => child.name.includes(ban))) {
           continue;
         }
 
