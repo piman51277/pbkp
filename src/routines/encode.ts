@@ -22,6 +22,21 @@ import { deflateSync } from "zlib";
  * uint32 index1
  */
 
+/**
+ * Dir Tree format:
+ * 
+ * uint32 numNodes
+ * uint32 tableSize
+ * 
+ * (41+ bytes per node)
+ * uint8 isFile
+ * char[32] hash
+ * uint32 nameLen
+ * char[nameLen] name
+ * uint32 numChildren
+ * uint32 children[numChildren]
+ */
+
 
 type WatcherMessage = {
   paths: string[];
@@ -34,7 +49,7 @@ type WorkerMessage = {
 }
 
 
-const WORKER_THREAD_MAX = 8;
+const WORKER_THREAD_MAX = 16;
 const CHUNK_SIZE_MB = 1;
 
 /**
@@ -65,6 +80,76 @@ export async function compressFileNodes(tree: DirTree): Promise<Buffer> {
   }
 
   return packFiles(toCompress);
+}
+
+/**
+ * Encodes a directory tree into a binary blob
+ * @param {DirTree} tree tree to encode
+ * @returns {Buffer} encoded tree
+ */
+function encodeDirTree(tree: DirTree): Buffer {
+  //first pass: calculate the size of each node
+  const nodeSizes: number[] = [];
+
+  for (const node of tree) {
+    const { name, children } = node;
+
+    //size of the name
+    const nameSize = Buffer.byteLength(name, 'utf-8');
+
+    //each node is 41 bytes + name size + 4 * numChildren
+    nodeSizes.push(41 + nameSize + 4 * children.length);
+  }
+
+  //second pass: compute offsets for each node
+  let currentOffset = 8; //skip the first 8 bytes for the header
+  const nodeOffsets: number[] = [currentOffset];
+  for (let i = 0; i < nodeSizes.length; i++) {
+    currentOffset += nodeSizes[i];
+    nodeOffsets.push(currentOffset);
+  }
+
+  //third pass: start writing the nodes
+  const buffer = Buffer.allocUnsafe(currentOffset); //now currentOffset is the size of the buffer
+
+  //write the number of nodes
+  buffer.writeUInt32LE(tree.length, 0);
+
+  //write the table size
+  buffer.writeUInt32LE(nodeOffsets.length, 4);
+
+  //write the nodes
+  let offset = 8;
+  for (let i = 0; i < tree.length; i++) {
+    const node = tree[i];
+    const { isFile, hash, name, children } = node;
+
+    //write the file flag
+    buffer.writeUInt8(isFile ? 1 : 0, offset);
+    offset += 1;
+
+    //write the hash
+    Buffer.from(hash!, "hex").copy(buffer, offset);
+    offset += 32;
+
+    //write the name
+    buffer.writeUInt32LE(name.length, offset);
+    offset += 4;
+    buffer.write(name, offset, name.length, "utf-8");
+    offset += name.length;
+
+    //write the number of children
+    buffer.writeUInt32LE(children.length, offset);
+    offset += 4;
+
+    //write the children
+    for (const child of children) {
+      buffer.writeUInt32LE(nodeOffsets[child], offset);
+      offset += 4;
+    }
+  }
+
+  return buffer;
 }
 
 /**
@@ -141,9 +226,11 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
   //wait for all workers to finish
   await Promise.all(workers.map(worker => new Promise<void>((resolve) => { worker.on("exit", resolve); })));
 
+  const treeHeader = encodeDirTree(files);
+
   const header = createChunkHeader(chunkHashes);
 
-  return Buffer.concat([header, ...compressedChunks]);
+  return Buffer.concat([treeHeader, header, ...compressedChunks]);
 }
 
 /**
@@ -186,7 +273,6 @@ function createChunkHeader(chunkHashes: string[][]): Buffer {
 
   return buffer;
 }
-
 
 
 /**
