@@ -4,25 +4,6 @@ import { readFileSync } from "fs";
 import { deflateSync } from "zlib";
 
 /**
- * Compressed block header format:
- * uint32 num_files
- * uint32 file1_start
- * uint32 file2_start
- * ...
- * uint32 fileN_start
- */
-
-/**
- * Chunk header format:
- * uint32 num_hashes
- * 
- * (40 bytes per hash)
- * byte[32] hash1
- * uint32 bundle1
- * uint32 index1
- */
-
-/**
  * Dir Tree format:
  * 
  * uint32 numNodes
@@ -36,6 +17,35 @@ import { deflateSync } from "zlib";
  * uint32 numChildren
  * uint32 children[numChildren]
  */
+
+/**
+ * Hash header format:
+ * uint32 num_hashes
+ * 
+ * (40 bytes per hash)
+ * byte[32] hash1
+ * uint32 bundle1
+ * uint32 index1
+ */
+
+/**
+ * Bundle header format:
+ * uint32 num_files
+ * uint32 file1_start
+ * uint32 file2_start
+ * ...
+ * uint32 fileN_start
+ */
+
+/**
+ * Compressed block header format:
+ * uint32 num_files
+ * uint32 file1_start
+ * uint32 file2_start
+ * ...
+ * uint32 fileN_start
+ */
+
 
 
 type WatcherMessage = {
@@ -152,6 +162,69 @@ function encodeDirTree(tree: DirTree): Buffer {
   return buffer;
 }
 
+
+/**
+ * Generates a chunk header for a set of chunk hashes
+ * @param {string[][]} chunkHashes hashes of the chunks
+ * @returns {Buffer} chunk header
+ */
+function createHashHeader(chunkHashes: string[][]): Buffer {
+  //to enable binary searching, we need to sort the hashes
+
+  //transform the hashes into different forms and note thier positions
+  const hashData: { hash: string, index: number, bundle: number }[] = [];
+  for (let i = 0; i < chunkHashes.length; i++) {
+    for (let j = 0; j < chunkHashes[i].length; j++) {
+      hashData.push({ hash: chunkHashes[i][j], index: j, bundle: i });
+    }
+  }
+
+  //sort the hashes (these are hex strings, so we can just use the default sort)
+  hashData.sort((a, b) => a.hash < b.hash ? -1 : 1);
+
+  const bufferSize = (32 + 4 + 4) * hashData.length + 4;
+  const buffer = Buffer.allocUnsafe(bufferSize);
+
+  //write the number of hashes
+  buffer.writeUInt32LE(hashData.length, 0);
+
+  //write the hashes
+  let offset = 4;
+  for (const hash of hashData) {
+    //write the raw hash data (convert hex to binary)
+    const hashBuffer = Buffer.from(hash.hash, "hex");
+    hashBuffer.copy(buffer, offset);
+    offset += 32;
+    buffer.writeUInt32LE(hash.bundle, offset);
+    offset += 4;
+    buffer.writeUInt32LE(hash.index, offset);
+    offset += 4;
+  }
+
+  return buffer;
+}
+
+/**
+ * Generates a bundle header for a set of bundles
+ * @param {Buffer[]} bundles bundles to generate a header for
+ * @returns {Buffer} bundle header
+ */
+function createBundleHeader(bundles: Buffer[]): Buffer {
+  const headerSize = 4 * bundles.length + 4;
+  const outbuffer = Buffer.allocUnsafe(headerSize);
+  outbuffer.writeUInt32LE(bundles.length, 0);
+  let offset = 4;
+  let fileOffset = headerSize;
+  for (const file of bundles) {
+    outbuffer.writeUInt32LE(fileOffset, offset);
+    offset += 4;
+    fileOffset += file.length;
+  }
+
+  return outbuffer;
+}
+
+
 /**
  * Packs provided files into a binary blob
  * @param {FNode[]} files files to pack
@@ -228,52 +301,12 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
 
   const treeHeader = encodeDirTree(files);
 
-  const header = createChunkHeader(chunkHashes);
+  const hashHeader = createHashHeader(chunkHashes);
 
-  return Buffer.concat([treeHeader, header, ...compressedChunks]);
+  const bundleHeader = createBundleHeader(compressedChunks);
+
+  return Buffer.concat([treeHeader, hashHeader, bundleHeader, ...compressedChunks]);
 }
-
-/**
- * Generates a chunk header for a set of chunk hashes
- * @param {string[][]} chunkHashes hashes of the chunks
- * @returns {Buffer} chunk header
- */
-function createChunkHeader(chunkHashes: string[][]): Buffer {
-  //to enable binary searching, we need to sort the hashes
-
-  //transform the hashes into different forms and note thier positions
-  const hashData: { hash: string, index: number, bundle: number }[] = [];
-  for (let i = 0; i < chunkHashes.length; i++) {
-    for (let j = 0; j < chunkHashes[i].length; j++) {
-      hashData.push({ hash: chunkHashes[i][j], index: j, bundle: i });
-    }
-  }
-
-  //sort the hashes (these are hex strings, so we can just use the default sort)
-  hashData.sort((a, b) => a.hash < b.hash ? -1 : 1);
-
-  const bufferSize = (32 + 4 + 4) * hashData.length + 4;
-  const buffer = Buffer.allocUnsafe(bufferSize);
-
-  //write the number of hashes
-  buffer.writeUInt32LE(hashData.length, 0);
-
-  //write the hashes
-  let offset = 4;
-  for (const hash of hashData) {
-    //write the raw hash data (convert hex to binary)
-    const hashBuffer = Buffer.from(hash.hash, "hex");
-    hashBuffer.copy(buffer, offset);
-    offset += 32;
-    buffer.writeUInt32LE(hash.bundle, offset);
-    offset += 4;
-    buffer.writeUInt32LE(hash.index, offset);
-    offset += 4;
-  }
-
-  return buffer;
-}
-
 
 /**
  * Compresses an array of files into separate blobs
