@@ -89,7 +89,12 @@ export async function compressFileNodes(tree: DirTree): Promise<Buffer> {
     }
   }
 
-  return packFiles(toCompress);
+
+  const treeHeader = encodeDirTree(tree);
+
+  const compressedFiles = await packFiles(toCompress);
+
+  return Buffer.concat([treeHeader, compressedFiles]);
 }
 
 /**
@@ -126,7 +131,7 @@ function encodeDirTree(tree: DirTree): Buffer {
   buffer.writeUInt32LE(tree.length, 0);
 
   //write the table size
-  buffer.writeUInt32LE(nodeOffsets.length, 4);
+  buffer.writeUInt32LE(currentOffset, 4);
 
   //write the nodes
   let offset = 8;
@@ -214,7 +219,7 @@ function createBundleHeader(bundles: Buffer[]): Buffer {
   const outbuffer = Buffer.allocUnsafe(headerSize);
   outbuffer.writeUInt32LE(bundles.length, 0);
   let offset = 4;
-  let fileOffset = headerSize;
+  let fileOffset = 0;
   for (const file of bundles) {
     outbuffer.writeUInt32LE(fileOffset, offset);
     offset += 4;
@@ -299,13 +304,11 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
   //wait for all workers to finish
   await Promise.all(workers.map(worker => new Promise<void>((resolve) => { worker.on("exit", resolve); })));
 
-  const treeHeader = encodeDirTree(files);
-
   const hashHeader = createHashHeader(chunkHashes);
 
   const bundleHeader = createBundleHeader(compressedChunks);
 
-  return Buffer.concat([treeHeader, hashHeader, bundleHeader, ...compressedChunks]);
+  return Buffer.concat([hashHeader, bundleHeader, ...compressedChunks]);
 }
 
 /**
@@ -315,22 +318,22 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
  */
 function _compressFiles(paths: string[]): Buffer {
   const contents = paths.map(path => readFileSync(path));
-  const compressed = contents.map(contents => deflateSync(contents));
+  const compressed = deflateSync(Buffer.concat(contents));
 
   //write chunk header
   const headerSize = 4 * paths.length + 4;
   const outbuffer = Buffer.allocUnsafe(headerSize);
   outbuffer.writeUInt32LE(paths.length, 0);
   let offset = 4;
-  let fileOffset = headerSize;
-  for (const file of compressed) {
+  let fileOffset = 0;
+  for (const file of contents) {
     outbuffer.writeUInt32LE(fileOffset, offset);
     offset += 4;
     fileOffset += file.length;
   }
 
   //write chunks
-  return Buffer.concat([outbuffer, ...compressed]);
+  return Buffer.concat([outbuffer, compressed]);
 }
 
 if (!isMainThread) {
