@@ -74,7 +74,7 @@ class DecodedBuffers {
  */
 function processDirTreeNode(buf: Buffer, offset: number): FNode {
   const node: FNode = {
-    id: buf.readUInt32LE(offset),
+    id: offset,
     isFile: false,
     fsPath: null,
     hash: "",
