@@ -60,7 +60,7 @@ class DecodedBuffers {
 
     const numFilesInBlock = blockEntry.header.readUInt32LE(0);
     const fileStart = blockEntry.header.readUInt32LE(4 + index * 4);
-    const fileEnd = index === numFilesInBlock - 1 ? blockEntry.header.length : blockEntry.header.readUInt32LE(4 + (index + 1) * 4);
+    const fileEnd = index === numFilesInBlock - 1 ? blockEntry.data.length : blockEntry.header.readUInt32LE(4 + (index + 1) * 4);
 
     return blockEntry.data.subarray(fileStart, fileEnd);
   }
