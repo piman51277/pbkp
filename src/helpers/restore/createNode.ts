@@ -1,6 +1,6 @@
 import { join } from "path";
-import { FNode } from "../types";
-import { DecodedBuffers } from "./decode";
+import { FNode } from "../../types";
+import { DecodedBuffers } from "../decode";
 import { mkdirSync, writeFileSync } from "fs";
 
 /**

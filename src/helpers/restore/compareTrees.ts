@@ -1,12 +1,12 @@
-import { DirTree, FNode } from "../types";
+import { DirTree, FNode } from "../../types";
 
-enum FileOpEnum {
+export enum FileOpEnum {
   DELETE,
   CREATE,
   RENAME
 }
 
-type FileOperation = {
+export type FileOperation = {
   type: FileOpEnum.DELETE,
   target: string //relative path to file
 } | {
