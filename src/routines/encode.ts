@@ -3,7 +3,6 @@ import { DirTree, FNode } from "../types";
 import { readFileSync } from "fs";
 import { deflateSync } from "zlib";
 import { join } from "path";
-import { config } from "../env/config";
 
 /**
  * Dir Tree format:
@@ -52,6 +51,7 @@ import { config } from "../env/config";
 
 type WatcherMessage = {
   paths: string[];
+  root: string;
   id: number;
 }
 
@@ -67,9 +67,10 @@ const CHUNK_SIZE_MB = 1;
 /**
  * Compresses ALL files in a directory tree into a single binary blob
  * @param {DirTree} tree tree to compress
+ * @param {string} root root directory
  * @returns {Promise<Buffer>} compressed files
  */
-export async function compressFileNodes(tree: DirTree): Promise<Buffer> {
+export async function compressFileNodes(tree: DirTree, root: string): Promise<Buffer> {
   const seenHashes = new Map<string, string>();
 
   //create chunks
@@ -94,7 +95,7 @@ export async function compressFileNodes(tree: DirTree): Promise<Buffer> {
 
   const treeHeader = encodeDirTree(tree);
 
-  const compressedFiles = await packFiles(toCompress);
+  const compressedFiles = await packFiles(toCompress, root);
 
   return Buffer.concat([treeHeader, compressedFiles]);
 }
@@ -235,9 +236,10 @@ function createBundleHeader(bundles: Buffer[]): Buffer {
 /**
  * Packs provided files into a binary blob
  * @param {FNode[]} files files to pack
+ * @param {string} root root directory
  * @returns {Promise<Buffer>} compressed files
  */
-async function packFiles(files: FNode[]): Promise<Buffer> {
+async function packFiles(files: FNode[], root: string): Promise<Buffer> {
 
   //create chunks
   const chunks: string[][] = [];
@@ -285,7 +287,7 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
 
   //assign the initial batch
   for (const worker of workers) {
-    const message: WatcherMessage = { paths: chunks[nextId], id: nextId++ };
+    const message: WatcherMessage = { paths: chunks[nextId], id: nextId++, root };
     worker.postMessage(message);
   }
 
@@ -295,7 +297,7 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
       compressedChunks[msg.id] = msg.result;
 
       if (nextId < chunks.length) {
-        const message: WatcherMessage = { paths: chunks[nextId], id: nextId++ };
+        const message: WatcherMessage = { paths: chunks[nextId], id: nextId++, root };
         worker.postMessage(message);
       } else {
         worker.terminate();
@@ -315,11 +317,12 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
 
 /**
  * Compresses an array of files into separate blobs
- * @param {string[]} paths paths to file  s
+ * @param {string[]} paths paths to files
+ * @param {string} root root directory
  * @returns {Buffer} compressed files
  */
-function _compressFiles(paths: string[]): Buffer {
-  const contents = paths.map(path => readFileSync(join(config.targetPath, path)));
+function _compressFiles(paths: string[], root: string): Buffer {
+  const contents = paths.map(path => readFileSync(join(root, path)));
   const compressed = deflateSync(Buffer.concat(contents));
 
   //write chunk header
@@ -340,6 +343,6 @@ function _compressFiles(paths: string[]): Buffer {
 
 if (!isMainThread) {
   parentPort!.on("message", (msg: WatcherMessage) => {
-    parentPort!.postMessage({ result: _compressFiles(msg.paths), id: msg.id });
+    parentPort!.postMessage({ result: _compressFiles(msg.paths, msg.root), id: msg.id });
   });
 }
