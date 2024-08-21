@@ -2,6 +2,8 @@ import { isMainThread, parentPort, Worker } from "worker_threads";
 import { DirTree, FNode } from "../types";
 import { readFileSync } from "fs";
 import { deflateSync } from "zlib";
+import { join } from "path";
+import { config } from "../env/config";
 
 /**
  * Dir Tree format:
@@ -247,14 +249,14 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
   for (const node of files) {
     //if the file is bigger than one chunk, it is its own chunk
     if (node.size! > CHUNK_SIZE_MB * 1024 * 1024) {
-      chunks.push([node.fsPath!]);
+      chunks.push([node.relPath!]);
       chunkHashes.push([node.hash!]);
       continue;
     }
 
     //if the file fits in the chunk, add it
     if (currentChunkSize + node.size! <= CHUNK_SIZE_MB * 1024 * 1024) {
-      chunk.push(node.fsPath!);
+      chunk.push(node.relPath!);
       chunkHash.push(node.hash!);
       currentChunkSize += node.size!;
     } else {
@@ -262,7 +264,7 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
       chunks.push(chunk);
       chunkHashes.push(chunkHash);
       chunkHash = [node.hash!];
-      chunk = [node.fsPath!];
+      chunk = [node.relPath!];
       currentChunkSize = node.size!;
     }
   }
@@ -317,7 +319,7 @@ async function packFiles(files: FNode[]): Promise<Buffer> {
  * @returns {Buffer} compressed files
  */
 function _compressFiles(paths: string[]): Buffer {
-  const contents = paths.map(path => readFileSync(path));
+  const contents = paths.map(path => readFileSync(join(config.targetPath, path)));
   const compressed = deflateSync(Buffer.concat(contents));
 
   //write chunk header

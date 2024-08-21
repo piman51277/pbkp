@@ -2,6 +2,8 @@ import { readFileSync } from "fs";
 import { DirTree } from "../../types";
 import { createHash } from "crypto";
 import { isMainThread, parentPort, Worker, workerData } from "worker_threads";
+import { config } from "../../env/config";
+import { join } from "path";
 
 const WORKER_THREAD_MAX = 8;
 
@@ -62,7 +64,7 @@ async function hashFileNodesWorker(): Promise<void> {
   const tree = workerData as DirTree;
   for (const node of tree) {
     if (node.isFile) {
-      const [fileHash, discriminator, size] = hashFile(node.fsPath!);
+      const [fileHash, discriminator, size] = hashFile(join(config.targetPath, node.relPath!));
       node.hash = fileHash;
       node.discriminator = discriminator;
       node.size = size;

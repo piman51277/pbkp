@@ -76,7 +76,7 @@ function processDirTreeNode(buf: Buffer, offset: number): FNode {
   const node: FNode = {
     id: offset,
     isFile: false,
-    fsPath: null,
+    relPath: null,
     hash: "",
     name: "",
     children: []

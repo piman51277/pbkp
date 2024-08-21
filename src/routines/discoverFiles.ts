@@ -1,6 +1,6 @@
 import { readdirSync } from "fs";
 import { DirTree, FNode } from "../types";
-import { join, basename } from "path";
+import { join, basename, relative } from "path";
 import { config } from "../env/config";
 
 type QueueEntry = {
@@ -24,10 +24,15 @@ export function discoverFiles(root: string): DirTree {
 
     const children = readdirSync(path, { withFileTypes: true });
 
+    let relPath = relative(config.targetPath, path);
+    if (relPath === "") {
+      relPath = ".";
+    }
+
     const parentNode: FNode = {
       id: nextId++,
       name: basename(path),
-      fsPath: path,
+      relPath,
       isFile: false,
       children: [],
     };
@@ -57,10 +62,15 @@ export function discoverFiles(root: string): DirTree {
           continue;
         }
 
+        let relPath = relative(config.targetPath, childPath);
+        if (relPath === "") {
+          relPath = ".";
+        }
+
         const childNode: FNode = {
           id: nextId++,
           name: child.name,
-          fsPath: childPath,
+          relPath,
           isFile: true,
           children: [],
         };
