@@ -2,6 +2,7 @@ import { readdirSync } from "fs";
 import { DirTree, FNode } from "../types";
 import { join, basename, relative } from "path";
 import { config } from "../env/config";
+import { hashNodes } from "./hashing";
 
 type QueueEntry = {
   path: string;
@@ -13,7 +14,7 @@ type QueueEntry = {
  * @param {string} root dir to consider as root
  * @returns {DirTree} list of nodes
  */
-export function discoverFiles(root: string): DirTree {
+function discoverFiles(root: string): DirTree {
   let nextId = 0;
   const nodes: FNode[] = [];
 
@@ -24,14 +25,17 @@ export function discoverFiles(root: string): DirTree {
 
     const children = readdirSync(path, { withFileTypes: true });
 
-    let relPath = relative(config.targetPath, path);
+    let relPath = relative(root, path);
     if (relPath === "") {
       relPath = ".";
     }
 
     const parentNode: FNode = {
       id: nextId++,
-      name: basename(path),
+
+      //we override this so the target directory
+      //on different machines can be named differently
+      name: path != root ? basename(path) : "root",
       relPath,
       isFile: false,
       children: [],
@@ -62,7 +66,7 @@ export function discoverFiles(root: string): DirTree {
           continue;
         }
 
-        let relPath = relative(config.targetPath, childPath);
+        let relPath = relative(root, childPath);
         if (relPath === "") {
           relPath = ".";
         }
@@ -91,4 +95,14 @@ export function discoverFiles(root: string): DirTree {
   }
 
   return nodes;
+}
+
+
+/**
+ * Indexes a directory
+ * @param {string} root root directory
+ * @returns {DirTree} indexed directory
+ */
+export async function indexDir(root: string): Promise<DirTree> {
+  return hashNodes(discoverFiles(root), root);
 }

@@ -2,7 +2,6 @@ import { readFileSync } from "fs";
 import { DirTree } from "../../types";
 import { createHash } from "crypto";
 import { isMainThread, parentPort, Worker, workerData } from "worker_threads";
-import { config } from "../../env/config";
 import { join } from "path";
 
 const WORKER_THREAD_MAX = 8;
@@ -10,9 +9,10 @@ const WORKER_THREAD_MAX = 8;
 /**
  * Populates the hash field of file nodes in the tree
  * @param {DirTree} tree tree to hash
+ * @param {string} root root of the tree
  * @returns {DirTree} tree with hash field populated
  */
-export async function hashFileNodes(tree: DirTree): Promise<DirTree> {
+export async function hashFileNodes(tree: DirTree, root: string): Promise<DirTree> {
   //multithreading so we are constrained by disk IO
   let chunks: DirTree[] = [];
   const chunkSize = Math.ceil(tree.length / WORKER_THREAD_MAX);
@@ -26,7 +26,7 @@ export async function hashFileNodes(tree: DirTree): Promise<DirTree> {
     const promises = chunks.map((chunk) => {
       return new Promise<DirTree>((resolve, reject) => {
         const worker = new Worker(__filename, {
-          workerData: chunk,
+          workerData: { chunk, root },
         });
         worker.on("message", resolve);
         worker.on("error", reject);
@@ -61,10 +61,11 @@ function hashFile(path: string): [string, string, number] {
  * Worker thread function to hash file nodes
  */
 async function hashFileNodesWorker(): Promise<void> {
-  const tree = workerData as DirTree;
+  const tree = workerData.chunk as DirTree;
+  const root = workerData.root as string;
   for (const node of tree) {
     if (node.isFile) {
-      const [fileHash, discriminator, size] = hashFile(join(config.targetPath, node.relPath!));
+      const [fileHash, discriminator, size] = hashFile(join(root, node.relPath!));
       node.hash = fileHash;
       node.discriminator = discriminator;
       node.size = size;
