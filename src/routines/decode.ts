@@ -13,7 +13,7 @@ type BlockEntry = {
   header: Buffer;
 }
 
-class DecodedBuffers {
+export class DecodedBuffers {
   dirTree: DirTree;
   hashTable: DecodedHashEntry[];
   blocks: BlockEntry[];

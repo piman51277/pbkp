@@ -2,6 +2,8 @@ import { compressFileNodes } from "./routines/encode";
 import { unpackFiles } from "./routines/decode";
 import { indexDir } from "./routines/indexDir";
 import { createHash } from "crypto";
+import { createNode } from "./routines/createNode";
+import { mkdirSync, rmSync } from "fs";
 
 const root = "/home/piman/data/testfold";
 
@@ -66,6 +68,36 @@ async function run(): Promise<void> {
 
   }
   console.log("All files decompressed successfully");
+
+  //attempt to restore the original directory
+  console.log("Attempting to restore original directory");
+  const target = "/home/piman/data/.pbkpcache";
+
+
+  //make a directory to restore to
+  mkdirSync(target);
+
+  const t0 = Date.now();
+
+  createNode(tree[0], decompressed, target, true);
+
+  const t1 = Date.now();
+
+  console.log(`Restoration took ${t1 - t0}ms`);
+
+  //hash the restored directory
+  const restored = await indexDir(target);
+
+  //compare the hashes of the root directories
+  if (restored[0].hash !== hashed[0].hash) {
+    console.log("Root directory hash mismatch");
+    return;
+  }
+
+  console.log("Restoration successful");
+
+  //clean up
+  rmSync(target, { recursive: true });
 }
 
 run();
