@@ -1,8 +1,8 @@
-import { compressFileNodes } from "./routines/encode";
-import { unpackFiles } from "./routines/decode";
-import { indexDir } from "./routines/indexDir";
+import { compressFileNodes } from "./helpers/encode";
+import { unpackFiles } from "./helpers/decode";
+import { indexDir } from "./helpers/indexDir";
 import { createHash } from "crypto";
-import { createNode } from "./routines/createNode";
+import { createNode } from "./helpers/restore/createNode";
 import { mkdirSync, rmSync } from "fs";
 
 const root = "/home/piman/data/testfold";
