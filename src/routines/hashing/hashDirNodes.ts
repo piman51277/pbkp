@@ -11,6 +11,9 @@ function hashDirectory(node: FNode, tree: DirTree): string {
   const hash = createHash("sha256");
   for (const child of node.children) {
     hash.update(tree[child].hash as string);
+
+    //include the child name in the hash
+    hash.update(tree[child].name);
   }
   return hash.digest("hex");
 }
@@ -28,6 +31,9 @@ export async function hashDirNodes(tree: DirTree): Promise<DirTree> {
 
   while (searchQueue.length > 0) {
     const { children } = tree[searchQueue.shift() as number];
+
+    //sort children by name
+    children.sort((a, b) => tree[a].name < tree[b].name ? -1 : 1);
 
     for (const child of children) {
       if (!tree[child].isFile) {
