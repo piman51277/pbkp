@@ -13,3 +13,10 @@ export type FNode = Partial<HydratedFNode> & {
 };
 
 export type DirTree = FNode[];
+
+export type BundleMetadata = {
+  hash: string;
+  created: number;
+  isRelative: boolean;
+  parent: string | null;
+}

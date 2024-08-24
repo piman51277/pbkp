@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { BundleMetadata } from "../types";
 
 /**
@@ -46,3 +47,17 @@ export function extractMeta(raw: Buffer): [BundleMetadata, Buffer] {
 
   return [{ hash, created, isRelative, parent }, buf];
 }
+
+/**
+ * Creates metadata for a buffer
+ * @param {Buffer} raw source buffer
+ * @param {string?} parent parent hash, if any
+ * @returns {BundleMetadata} metadata
+ */
+export function createMeta(raw: Buffer, parent?: string): BundleMetadata {
+  const hash = createHash("sha256").update(raw).digest("hex");
+  const created = Math.floor(Date.now() / 1000);
+  return {
+    hash, created, isRelative: !!parent, parent: parent ?? null
+  };
+};
