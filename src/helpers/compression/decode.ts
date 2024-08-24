@@ -1,5 +1,5 @@
 import { inflateSync } from "zlib";
-import { DirTree, FNode } from "../types";
+import { DirTree, FNode } from "../../types";
 
 type DecodedHashEntry = {
   hash: string;

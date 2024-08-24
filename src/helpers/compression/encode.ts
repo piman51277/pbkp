@@ -1,5 +1,5 @@
 import { isMainThread, parentPort, Worker } from "worker_threads";
-import { DirTree, FNode } from "../types";
+import { DirTree, FNode } from "../../types";
 import { readFileSync } from "fs";
 import { deflateSync } from "zlib";
 import { join } from "path";
