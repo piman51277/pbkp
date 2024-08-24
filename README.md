@@ -27,7 +27,6 @@ The configuration file is located at `./config.json`. It uses the format:
 ```json
 {
   "targetPath": "", // The path to the folder to be backed up
-  "cachePath": "", // The path to the cache folder
   "backupsPath": "", // The path to the backups folder
   "backupName": "", // What to prepend to the backup name
   "bans": {
