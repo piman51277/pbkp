@@ -10,13 +10,12 @@
   "author": "piman51277",
   "license": "MIT",
   "dependencies": {
+    "@inquirer/prompts": "^5.3.8",
     "adm-zip": "^0.5.10",
-    "inquirer": "^9.2.7",
     "joi": "^17.9.2"
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.0",
-    "@types/inquirer": "^9.0.3",
     "@types/node": "^20.3.0",
     "@typescript-eslint/eslint-plugin": "^8.0.1",
     "@typescript-eslint/parser": "^8.0.1",
