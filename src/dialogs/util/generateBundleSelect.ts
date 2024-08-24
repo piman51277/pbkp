@@ -2,6 +2,7 @@ import { findSavedBundles } from "../../helpers/restore/findSavedBundles";
 
 type ChoiceCompat = {
   name: string;
+  short: string;
   value: string;
 }
 
@@ -55,6 +56,7 @@ export async function generateBundleSelect(onlyPin = false): Promise<ChoiceCompa
 
     choices.push({
       name: `${capString(name, 40)} (${relativeTime(meta.created)})`,
+      short: name,
       value: name,
     });
   }
