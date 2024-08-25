@@ -1,4 +1,6 @@
+import { input, select } from "@inquirer/prompts";
 import { findSavedBundles } from "../../helpers/restore/findSavedBundles";
+import { statSync } from "fs";
 
 type ChoiceCompat = {
   name: string;
@@ -45,7 +47,7 @@ function relativeTime(time: number): string {
  * @param {boolean} onlyPin only show pinned bundles. Optional, default false
  * @returns {ChoiceCompat[]} formatted list of choices
  */
-export async function generateBundleSelect(onlyPin = false): Promise<ChoiceCompat[]> {
+async function generateBundleSelect(onlyPin = false): Promise<ChoiceCompat[]> {
   const bundles = await findSavedBundles();
 
   const choices: ChoiceCompat[] = [];
@@ -62,4 +64,51 @@ export async function generateBundleSelect(onlyPin = false): Promise<ChoiceCompa
   }
 
   return choices;
+}
+
+/**
+ * Dialog to select a bundle
+ * @param {boolean} onlyPin only show pinned bundles. Optional, default false
+ * @returns {Promise<string>} selected bundle name
+ */
+export async function selectBundleDialog(onlyPin = false): Promise<string> {
+  const choices = await generateBundleSelect(onlyPin);
+
+  choices.push({
+    name: "Other location",
+    short: "Other location",
+    value: "_otherloc",
+  });
+
+  try {
+    let answer = await select({
+      message: "Select a bundle to load",
+      choices: choices,
+    });
+
+    if (answer == "_otherloc") {
+      answer = await input({ "message": "Enter the path to the bundle" });
+
+
+      //check if there is a file at that location
+      try {
+        statSync(answer);
+      } catch (err: any) {
+        if (err.code == "ENOENT") {
+          console.log("No such file exists.");
+          process.exit(1);
+        }
+      }
+
+    }
+
+    return answer;
+  } catch (err: any) {
+    //allow control-c to exit without throwing an error
+    if (err.message == "User force closed the prompt with 0 null") {
+      process.exit(0);
+    }
+
+    throw err;
+  }
 }

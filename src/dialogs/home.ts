@@ -1,4 +1,8 @@
 import { select } from "@inquirer/prompts";
+import { loadBackup } from "../routines/loadBackup";
+import { createPinned } from "../routines/createPinned";
+import { createRelative } from "../routines/createRelative";
+import { analysisDialog } from "./analysis";
 
 /**
  * Main menu dialog
@@ -16,28 +20,27 @@ export async function homeDialog(): Promise<void> {
       ],
     });
 
-    //TODO: implement
     switch (answer) {
       case "load":
-        console.log("Loading a backup");
+        loadBackup();
         break;
       case "create":
-        console.log("Creating a backup (pin)");
+        createPinned();
         break;
       case "create-rel":
-        console.log("Creating a backup (relative)");
+        createRelative();
         break;
       case "analysis":
-        console.log("Analysis tools");
+        analysisDialog();
         break;
       case "exit":
-        console.log("Goodbye!");
+        process.exit(0);
         break;
     }
   } catch (err: any) {
     //allow control-c to exit without throwing an error
     if (err.message == "User force closed the prompt with 0 null") {
-      console.log("Goodbye!");
+      process.exit(0);
       return;
     }
 
