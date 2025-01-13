@@ -11,12 +11,9 @@ export async function zipBundle(
   const buf = bundle.toBuffer();
   const date = new Date();
   //do year-month-day
-  const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${
-    date.getDate() + 1
-  }`;
-  const bundleName = `${config.backupName}${dateString}${
-    isRelative ? "_rel" : ""
-  }.pmbk`;
+  const dateString = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+  const bundleName = `${config.backupName}${dateString}${isRelative ? "_rel" : ""
+    }.pmbk`;
   writeFileSync(`${config.backupsPath}/${bundleName}`, buf);
   spinner.succeed(`Wrote bundle to ${config.backupsPath}/${bundleName}`);
   console.log(`Bundle size: ${sizeString(buf.length)}`);
